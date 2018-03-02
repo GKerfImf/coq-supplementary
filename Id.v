@@ -27,7 +27,14 @@ Notation "n >>  m" := (gt_id n m).
 Notation "n <<  m" := (lt_id n m).
 
 Lemma lt_eq_lt_id_dec: forall (id1 id2 : id), {id1 << id2} + {id1 = id2} + {id2 << id1}.
-Proof. admit. Admitted.
+Proof.
+  intros.
+  destruct id1 as [n], id2 as [m].
+  destruct (lt_eq_lt_dec n m) as [[LT|EQ]|GT].
+  - left; left; constructor; exact LT.
+  - left; right; rewrite EQ; reflexivity.
+  - right; constructor; exact GT.
+Qed.
 
 Lemma gt_eq_gt_id_dec: forall (id1 id2 : id), {id1 >> id2} + {id1 = id2} + {id2 >> id1}.
 Proof. admit. Admitted.
@@ -36,7 +43,27 @@ Lemma le_gt_id_dec : forall id1 id2 : id, {id1 <<= id2} + {id1 >> id2}.
 Proof. admit. Admitted.
 
 Lemma eq_dec : forall n m : nat, {n = m} + {n <> m}.
-Proof. admit. Admitted.
+Proof.
+  intros n.
+  induction n; intros.
+  - destruct m as [|m].
+     + left; reflexivity.
+     + right; trivial.
+  - destruct m as [|m].
+    + right; apply not_eq_sym; trivial. 
+    + destruct (IHn m) as [IH|IH]; clear IHn.
+      * rewrite IH; left; reflexivity. 
+      * right; intros CONTR; apply IH; inversion CONTR; reflexivity.
+Qed.
+
+Lemma eq_dec' : forall n m : nat, {n = m} + {n <> m}.
+Proof.
+  intros n.
+  induction n; intros.
+  - destruct m as [|m]; auto.
+  - destruct m as [|m]; auto.
+    destruct (IHn m) as [IH|IH]; auto.
+Qed.
 
 Lemma eq_id_dec : forall id1 id2 : id, {id1 = id2} + {id1 <> id2}.
 Proof. admit. Admitted. 
