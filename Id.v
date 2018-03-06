@@ -1,5 +1,5 @@
 (** Borrowed from Pierce's "Software Foundations" *)
-
+ 
 Require Import Arith Arith.EqNat.
 Require Import Omega.
 
@@ -139,21 +139,29 @@ Qed.
 
 Lemma le_lt_eq_id_dec : forall id1 id2 : id, id1 <<= id2 -> {id1 = id2} + {id2 >> id1}.
 Proof.
-
-  admit.
-
-Admitted.
+  intros [n] [m] LE.
+  destruct (gt_eq_gt_id_dec (Id m) (Id n)) as [[GT|EQ]|LT].
+  - right; auto.
+  - left; rewrite EQ; auto.
+  - exfalso.
+    eapply le_gt_id_false; eauto.
+Qed.
 
 Lemma neq_lt_gt_id_dec : forall id1 id2 : id, id1 <> id2 -> {id1 >> id2} + {id2 >> id1}.
 Proof.
-  admit.
-
-Admitted.
+  intros [n] [m] NEQ.
+  destruct (gt_eq_gt_id_dec (Id m) (Id n)) as [[GT|EQ]|LT].
+  - right; auto.
+  - exfalso; apply NEQ; auto.
+  -  left; auto.
+Qed.
     
 Lemma eq_gt_id_false : forall id1 id2 : id, id1 = id2 -> id1 >> id2 -> False.
 Proof.
-
-  admit.
-
-Admitted.
+  intros [n] [m] EQ GT.
+  inversion EQ; subst; clear EQ.
+  inversion GT; subst; clear GT.
+  apply gt_irrefl in H1.
+  assumption.
+Qed.
 
