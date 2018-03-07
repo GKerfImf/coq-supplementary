@@ -96,10 +96,18 @@ Section S.
     st [x1 <- n2][x2 <- n1] / x3 => m.
   Proof.
     intros ? ? ? ? ? ? ? NEQ ST.
-    
-    
-
-    
-    admit. Admitted.  
+    destruct (eq_id_dec x1 x3) as [EQ1|NEQ1], (eq_id_dec x2 x3) as [EQ2|NEQ2]; subst.
+    - exfalso; auto.
+    - inversion ST; [subst | exfalso; auto].
+      apply update_neq; auto.
+      apply update_eq.
+    - clear NEQ1.
+      inversion ST; [exfalso; auto | subst].
+      inversion H5; subst; [apply update_eq | exfalso; auto]; auto.
+    - apply update_neq; auto.
+      apply update_neq; auto.
+      apply st_unbind_hd in ST; auto.
+      apply st_unbind_hd in ST; auto.
+  Qed.      
 
 End S.
