@@ -106,12 +106,20 @@ Module SmokeTest.
 
   Lemma nat_always : 
     forall (n : nat) (s : state Z), [| Nat n |] s => (Z.of_nat n).
-  Proof. admit. Admitted.
+  Proof.
+    intros; constructor.
+  Qed.
 
   Lemma double_and_sum : 
     forall (s : state Z) (e : expr) (z : Z), 
       [| e [*] (Nat 2) |] s => z -> [| e [+] e |] s => z.
-  Proof. admit. Admitted.
+  Proof.
+    intros ? ? ? EQ.
+    inversion EQ; subst; clear EQ.
+    inversion H4; subst; clear H4.
+    rewrite <- Zplus_diag_eq_mult_2.
+    apply bs_Add; auto.
+  Qed.
 
 End SmokeTest.
 
@@ -136,35 +144,101 @@ Inductive V : expr -> id -> Prop :=
 where "x ? e" := (V e x).
 
 (* If an expression is defined in some state, then each its' variable is
-   defined in that state
-*)
+   defined in that state. *)
 Lemma defined_expression: forall (e : expr) (s : state Z) (z : Z) (id : id),
   [| e |] s => z -> id ? e -> exists z', s / id => z'.
-Proof. admit. Admitted.
+Proof.
+  intros ? ? ? ?; generalize dependent z.
+  induction e.
+  { intros ? EV ID. inversion ID. }
+  { intros ? EV ID.
+    exists z. 
+    inversion ID; subst.
+    inversion EV; subst.
+    assumption. }
+  { intros ? EV ID.
+    destruct b;
+      ( inversion ID; subst; clear ID );
+      ( match goal with [H: _ \/ _ |- _] => destruct H as [ID|ID] end );
+      ( inversion EV; subst );
+      ( match goal with
+        | [H: (id) ? (?e) |- _] =>
+          match goal with
+          | [H: [| e |] _ => _ |- _] => try(apply IHe1 in H); try(apply IHe2 in H)
+          end
+        end ); auto.
+  }
+Qed.
 
 (* If a variable in expression is undefined in some state, then the expression
-   is undefined is that state as well
-*)
+   is undefined is that state as well. *)
 Lemma undefined_variable: forall (e : expr) (s : state Z) (id : id),
   id ? e -> (forall (z : Z), ~ (s / id => z)) -> (forall (z : Z), ~ ([| e |] s => z)).
-Proof. admit. Admitted.
+Proof.
+  intros ? ? ? ID H ? EV.
+  eapply defined_expression in EV; eauto.
+  destruct EV as [z' EV].
+  eapply H with z'.
+  assumption.
+Qed.
+
+
+Ltac feed H :=
+  match type of H with
+  | ?foo -> _ =>
+    let FOO := fresh in
+    assert foo as FOO; [ |specialize (H FOO); clear FOO]
+  end.
+
+Ltac feed_n n H := match constr:(n) with
+  | O => idtac
+  | (S ?m) => feed H; [ | feed_n m H]
+  end.
+
 
 (* The evaluation relation is deterministic *)
 Lemma bs_eval_deterministic: forall (e : expr) (s : state Z) (z1 z2 : Z),
   [| e |] s => z1 -> [| e |] s => z2 -> z1 = z2.
-Proof. admit. Admitted.
+Proof.
+  intros e s.
+  induction e; intros z1 z2 EV1 EV2.
+  { inversion EV1; subst.
+    inversion EV2; subst.
+    reflexivity. }
+  { inversion EV1; subst.
+    inversion EV2; subst.
+    eapply state_deterministic; eauto. }
+  { assert (IH1: forall z1, [|e1|] s => (z1) -> forall z2, [|e1|] s => (z2) -> z1 = z2).
+    { intros; apply IHe1; auto. } clear IHe1.
+    assert (IH2: forall z1, [|e2|] s => (z1) -> forall z2, [|e2|] s => (z2) -> z1 = z2).
+    { intros; apply IHe2; auto. } clear IHe2.
+    destruct b;
+      ( inversion EV1; subst;
+        inversion EV2; subst; auto );
+      repeat (match goal with
+              | [H: [| ?e1 |] _ => (?z) |- _ ] =>
+                try(specialize(IH1 z); feed IH1; [assumption | ]); 
+                try (specialize (IH2 z); feed IH2; [assumption | ]); clear H
+              end);
+      subst; auto; exfalso; auto.
+  }
+Qed.
 
 (* Equivalence of states w.r.t. an identifier *)
 Definition equivalent_states (s1 s2 : state Z) (id : id) :=
   forall z :Z, s1 /id => z <-> s2 / id => z.
 
 (* The result of expression evaluation in a state dependes only on the values
-   of occurring variables
-*)
+   of occurring variables *)
 Lemma variable_relevance: forall (e : expr) (s1 s2 : state Z) (z : Z),
   (forall (id : id) (z : Z), id ? e -> equivalent_states s1 s2 id) -> 
   [| e |] s1 => z -> [| e |] s2 => z.
-Proof. admit. Admitted.
+Proof.
+  
+  
+  admit.
+
+Admitted.
 
 (* Semantic equivalence *)
 Reserved Notation "e1 '~~' e2" (at level 42, no associativity).
