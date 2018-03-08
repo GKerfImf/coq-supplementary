@@ -208,20 +208,17 @@ Proof.
   { inversion EV1; subst.
     inversion EV2; subst.
     eapply state_deterministic; eauto. }
-  { assert (IH1: forall z1, [|e1|] s => (z1) -> forall z2, [|e1|] s => (z2) -> z1 = z2).
-    { intros; apply IHe1; auto. } clear IHe1.
-    assert (IH2: forall z1, [|e2|] s => (z1) -> forall z2, [|e2|] s => (z2) -> z1 = z2).
-    { intros; apply IHe2; auto. } clear IHe2.
-    destruct b;
+  { destruct b;
       ( inversion EV1; subst;
         inversion EV2; subst; auto );
       repeat (match goal with
-              | [H: [| ?e1 |] _ => (?z) |- _ ] =>
-                try(specialize(IH1 z); feed IH1; [assumption | ]); 
-                try (specialize (IH2 z); feed IH2; [assumption | ]); clear H
+              | Ha: [| e1 |] _ => (?z1), Hb: [| e1 |] _ => (?z2) |- _ =>
+                specialize (IHe1 z1 z2); feed_n 2 IHe1
+              | Ha: [| e2 |] _ => (?z1), Hb: [| e2 |] _ => (?z2) |- _ =>
+                specialize (IHe2 z1 z2); feed_n 2 IHe2
               end);
-      subst; auto; exfalso; auto.
-  }
+      auto; subst; auto; exfalso; auto; exfalso; auto.
+  } 
 Qed.
 
 (* Equivalence of states w.r.t. an identifier *)
