@@ -223,7 +223,7 @@ Qed.
 
 (* Equivalence of states w.r.t. an identifier *)
 Definition equivalent_states (s1 s2 : state Z) (id : id) :=
-  forall z :Z, s1 /id => z <-> s2 / id => z.
+  forall z: Z, s1 / id => z <-> s2 / id => z.
 
 (* The result of expression evaluation in a state dependes only on the values
    of occurring variables *)
@@ -231,11 +231,32 @@ Lemma variable_relevance: forall (e : expr) (s1 s2 : state Z) (z : Z),
   (forall (id : id) (z : Z), id ? e -> equivalent_states s1 s2 id) -> 
   [| e |] s1 => z -> [| e |] s2 => z.
 Proof.
-  
-  
-  admit.
-
-Admitted.
+  intros ? ? ?.
+  induction e.
+  { intros ? EQ ST.
+    inversion ST; subst.
+    constructor.
+  }
+  { intros ? EQ ST.
+    inversion ST; subst.
+    constructor.
+    apply EQ; auto.
+    constructor.
+  }
+  { intros ? EQ ST.
+    assert(IH1: forall (z : Z), [|e1|] s1 => (z) -> [|e1|] s2 => (z)).
+    { intros; eapply IHe1; eauto.
+      intros; apply EQ; eauto.
+      destruct b; constructor; left; auto. 
+    } clear IHe1.
+    assert(IH2: forall (z : Z), [|e2|] s1 => (z) -> [|e2|] s2 => (z)).
+    { intros; eapply IHe2; eauto.
+      intros; apply EQ; eauto.
+      destruct b; constructor; right; auto. 
+    } clear IHe2.
+    destruct b; inversion ST; subst; eauto. 
+  }
+Qed.
 
 (* Semantic equivalence *)
 Reserved Notation "e1 '~~' e2" (at level 42, no associativity).
@@ -249,13 +270,28 @@ where "e1 '~~' e2" := (equivalent e1 e2).
 
 (* Semantic equivalence is an equivalence relation *)
 Lemma eq_refl: forall (e : expr), e ~~ e.
-Proof. admit. Admitted.
+Proof.
+  intros; constructor; intros.
+  split; intros; auto.
+Qed.
 
 Lemma eq_symm: forall (e1 e2 : expr), e1 ~~ e2 -> e2 ~~ e1.
-Proof. admit. Admitted.
+Proof.
+  intros.
+  constructor.
+  symmetry.
+  destruct H; eauto.
+Qed.
 
 Lemma eq_trans: forall (e1 e2 e3 : expr), e1 ~~ e2 -> e2 ~~ e3 -> e1 ~~ e3.
-Proof. admit. Admitted.
+Proof.
+  intros.
+  destruct H, H0.
+  constructor; intros.
+  split; intros.
+  apply H0; apply H; eauto.
+  apply H; apply H0; eauto.
+Qed.
 
 (* Contexts *)
 Inductive Context : Type :=
@@ -281,9 +317,28 @@ Inductive contextual_equivalent: expr -> expr -> Prop :=
                 (forall (C : Context), (C <~ e1) ~~ (C <~ e2)) -> e1 ~c~ e2
 where "e1 '~c~' e2" := (contextual_equivalent e1 e2).
 
+Lemma eq_implies_ceq: forall (e1 e2 : expr), e1 ~~ e2 -> e1 ~c~ e2.
+Proof.
+  intros ? ? EQ.
+  destruct EQ as [e1 e2 EQ].
+  constructor; intros. 
+
+  
+  admit.
+
+Admitted.
+
+Lemma ceq_implies_eq: forall (e1 e2 : expr), e1 ~c~ e2 -> e1 ~~ e2.
+Proof.
+
+  admit.
+Admitted.
+
 (* Contextual equivalence is equivalent to the semantic one *)
 Lemma eq_eq_ceq: forall (e1 e2 : expr), e1 ~~ e2 <-> e1 ~c~ e2.
-Proof. admit. Admitted.
+Proof.
+  intros; split; intros; [apply eq_implies_ceq | apply ceq_implies_eq]; auto.
+Qed.
 
 
 
