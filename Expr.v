@@ -1,4 +1,4 @@
-Require Export BigZ.
+Require Export BinInt.
 Require Export Id.
 Require Export State.
 
@@ -42,7 +42,7 @@ Notation "x '[\/]' y" := (Bop Or  x y) (at level 38, left associativity).
 Definition zbool (x : Z) : Prop := x = Z.one \/ x = Z.zero.
   
 Definition zor (x y : Z) : Z :=
-  if Z_le_gt_dec (Z.of_nat 1) (x + y) then Z.one else Z.zero.
+  if Z.eq_dec (Z.of_nat 1) (x + y) then Z.one else Z.zero.
    
 Reserved Notation "[| e |] st => z" (at level 0).
 Notation "st / x => y" := (st_binds Z st x y) (at level 0).
@@ -115,10 +115,10 @@ Module SmokeTest.
       [| e [*] (Nat 2) |] s => z -> [| e [+] e |] s => z.
   Proof.
     intros ? ? ? EQ.
-    inversion EQ; subst; clear EQ.
-    inversion H4; subst; clear H4.
+    inversion_clear EQ.
+    inversion_clear H0.
     rewrite <- Zplus_diag_eq_mult_2.
-    apply bs_Add; auto.
+    auto.
   Qed.
 
 End SmokeTest.
@@ -164,7 +164,8 @@ Proof.
       ( match goal with
         | [H: (id) ? (?e) |- _] =>
           match goal with
-          | [H: [| e |] _ => _ |- _] => try(apply IHe1 in H); try(apply IHe2 in H)
+          | [H: [| e |] _ => _ |- _] =>
+            try(apply IHe1 in H); try(apply IHe2 in H)
           end
         end ); auto.
   }
@@ -202,11 +203,11 @@ Lemma bs_eval_deterministic: forall (e : expr) (s : state Z) (z1 z2 : Z),
 Proof.
   intros e s.
   induction e; intros z1 z2 EV1 EV2.
-  { inversion EV1; subst.
-    inversion EV2; subst.
+  { inversion_clear EV1.
+    inversion_clear EV2.
     reflexivity. }
-  { inversion EV1; subst.
-    inversion EV2; subst.
+  { inversion_clear EV1.
+    inversion_clear EV2.
     eapply state_deterministic; eauto. }
   { destruct b;
       ( inversion EV1; subst;
@@ -316,49 +317,43 @@ Inductive contextual_equivalent: expr -> expr -> Prop :=
   ceq_intro : forall (e1 e2 : expr),
                 (forall (C : Context), (C <~ e1) ~~ (C <~ e2)) -> e1 ~c~ e2
 where "e1 '~c~' e2" := (contextual_equivalent e1 e2).
-
+ 
 Lemma eq_implies_ceq: forall (e1 e2 : expr), e1 ~~ e2 -> e1 ~c~ e2.
 Proof.
   intros ? ? EQ.
   destruct EQ as [e1 e2 EQ].
-  constructor; intros. 
-
-  
-  admit.
-
-Admitted.
+  constructor; intros.
+  induction C.
+  { constructor; intros n s; split; intros H.
+    { apply EQ; auto. }
+    { apply EQ; auto. } } 
+  { simpl; destruct b.
+    all: constructor; intros n s; split; intros H; inversion_clear H.
+    all: try ( constructor; [destruct IHC; apply H | ]; auto ).
+    all: inversion_clear IHC as [? ? EQC]; apply EQC in H0; eauto. 
+  }
+  { simpl; destruct b.
+    all: constructor; intros n s; split; intros H; inversion_clear H.
+    all: try ( constructor; [destruct IHC; apply H | ]; auto ).
+    all: inversion_clear IHC as [? ? EQC]; apply EQC in H0; eauto. 
+  }
+Qed.
 
 Lemma ceq_implies_eq: forall (e1 e2 : expr), e1 ~c~ e2 -> e1 ~~ e2.
 Proof.
-
-  admit.
-Admitted.
+  intros ? ? EQ.
+  constructor; intros. 
+  destruct EQ as [e1 e2 EQ].
+  specialize (EQ Hole).
+  inversion_clear EQ.
+  auto. 
+Qed.
 
 (* Contextual equivalence is equivalent to the semantic one *)
 Lemma eq_eq_ceq: forall (e1 e2 : expr), e1 ~~ e2 <-> e1 ~c~ e2.
 Proof.
   intros; split; intros; [apply eq_implies_ceq | apply ceq_implies_eq]; auto.
 Qed.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
  
 
 
