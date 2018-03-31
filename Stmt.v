@@ -120,21 +120,26 @@ Module SmokeTest.
   Lemma while_false : forall (e : expr) (s : stmt) (st : state Z) (i o : list Z) (c : conf),
       c == WHILE e DO s END ==> (st, i, o) -> [| e |] st => Z.zero.
   Proof.
-  Admitted.
+    intros e s st i o c1 H.
+    remember (st, i, o) as c2.
+    remember (WHILE e DO s END).
+    induction H; inversion Heqc2; subst; inversion Heqs0; subst; eauto.
+  Qed.
 
   Definition True := Nat 1.
 
   Lemma loop_eq_undefined:
     (WHILE True DO SKIP END) ~~~ (COND (Nat 3) THEN SKIP ELSE SKIP END).
   Proof.
-    constructor; intros; split; intros.
-    inversion_clear H.
-
-    
-    induction H2.
-    
-    admit.
-  Admitted.
+    constructor; intros [[st1 i1] o1] [[st2 i2] o2]; split; intros H.
+    - remember (WHILE True DO SKIP END).
+      induction H; inversion Heqs.
+      + subst.
+        apply IHbs_int2 in Heqs.
+        inversion H0. rewrite H4. assumption.
+      + exfalso; subst; inversion H.
+    - inversion_clear H; inversion_clear H0.
+  Qed.
 
   Fixpoint fact n :=
     match n with
