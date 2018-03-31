@@ -141,92 +141,92 @@ Module SmokeTest.
     - inversion_clear H; inversion_clear H0.
   Qed.
 
-  Fixpoint fact n :=
-    match n with
-    | 0 => 1
-    | S n => (S n) * fact n
-    end.
+  Section Factorial.
 
-  Let fact_imperative :=
-    (Id 0 ::= Nat 1);;
-    (READ (Id 1));;
-    (WHILE Var (Id 1) [>] Nat 0 DO
-      (Id 0 ::= (Var (Id 0) [*] Var (Id 1)));;
-      (Id 1 ::= (Var (Id 1) [-] Nat 1))
-    END);;
-    WRITE (Var (Id 0)).
+    Let factorial_imperative :=
+      (Id 0 ::= Nat 1);;
+      (READ (Id 1));;
+      (WHILE Var (Id 1) [>] Nat 0 DO
+        (Id 0 ::= (Var (Id 0) [*] Var (Id 1)));;
+        (Id 1 ::= (Var (Id 1) [-] Nat 1))
+      END);;
+      WRITE (Var (Id 0)).
 
 
-  Lemma fact_correct:
-    forall n, exists state_f,
-        (nil, [Z.of_nat n], nil) == fact_imperative ==> (state_f, nil, [Z.of_nat (fact n)]).
-  Proof.
-    assert (Fact1: Id 0 <> Id 1) by (intros CONTR; inversion CONTR).
-    assert (Fact2: Id 1 <> Id 0) by (intros CONTR; inversion CONTR).
-    intros n.
-    assert (
-        Fact: forall m state_s, exists state_f,
-            (((state_s [Id 0 <- m%Z]) [Id 1 <- Z.of_nat n], [], [])) ==
-            WHILE Var (Id 1) [>] Nat 0 DO
-              (Id 0 ::= (Var (Id 0) [*] Var (Id 1)));;
-              (Id 1 ::= (Var (Id 1) [-] Nat 1))
-            END ==> (state_f [Id 0 <- (m * Z.of_nat (fact n))%Z][Id 1 <- 0%Z],[],[])).
-    { induction n.
-      { intros; rewrite Z.mul_1_r.
-        exists state_s.
-        eapply bs_While_False, bs_Gt_F. 
-        - apply bs_Var, st_binds_hd.
-        - apply bs_Nat.
-        - apply Z.le_refl. 
-      }
-      intros.
-      specialize (IHn (m * Z.of_nat (S n))%Z).
-      specialize (IHn (((state_s) [Id 0 <- m]) [Id 1 <- Z.of_nat (S n)])).
-      destruct IHn as [state_f IHn].
-      exists state_f.
-      eapply bs_While_True.
-      { eapply bs_Gt_T.
-        - eapply bs_Var, st_binds_hd.
-        - apply bs_Nat.
-        - apply Zgt_pos_0. 
-      } 
-      { eapply bs_Seq.
-        { apply bs_Assign, bs_Mul.
-          - apply bs_Var, st_binds_tl; auto. 
-            apply st_binds_hd.
+    Lemma factorial_correct:
+      forall n, exists state_f,
+          (nil, [Z.of_nat n], nil) ==
+          factorial_imperative
+            ==> (state_f, nil, [Z.of_nat (fact n)]).
+    Proof.
+      assert (Fact1: Id 0 <> Id 1) by (intros CONTR; inversion CONTR).
+      assert (Fact2: Id 1 <> Id 0) by (intros CONTR; inversion CONTR).
+      intros n.
+      assert (
+          Fact: forall m state_s, exists state_f,
+              (((state_s [Id 0 <- m%Z]) [Id 1 <- Z.of_nat n], [], [])) ==
+              WHILE Var (Id 1) [>] Nat 0 DO
+                    (Id 0 ::= (Var (Id 0) [*] Var (Id 1)));;
+                    (Id 1 ::= (Var (Id 1) [-] Nat 1))
+                    END ==> (state_f [Id 0 <- (m * Z.of_nat (fact n))%Z][Id 1 <- 0%Z],[],[])).
+      { induction n.
+        { intros; rewrite Z.mul_1_r.
+          exists state_s.
+          eapply bs_While_False, bs_Gt_F. 
           - apply bs_Var, st_binds_hd.
-        }
-        { apply bs_Assign, bs_Sub.
-          - apply bs_Var, st_binds_tl; auto.
-            apply st_binds_hd.
           - apply bs_Nat.
+          - apply Z.le_refl. 
+        }
+        intros.
+        specialize (IHn (m * Z.of_nat (S n))%Z).
+        specialize (IHn (((state_s) [Id 0 <- m]) [Id 1 <- Z.of_nat (S n)])).
+        destruct IHn as [state_f IHn].
+        exists state_f.
+        eapply bs_While_True.
+        { eapply bs_Gt_T.
+          - eapply bs_Var, st_binds_hd.
+          - apply bs_Nat.
+          - apply Zgt_pos_0. 
+        } 
+        { eapply bs_Seq.
+          { apply bs_Assign, bs_Mul.
+            - apply bs_Var, st_binds_tl; auto. 
+              apply st_binds_hd.
+            - apply bs_Var, st_binds_hd.
+          }
+          { apply bs_Assign, bs_Sub.
+            - apply bs_Var, st_binds_tl; auto.
+              apply st_binds_hd.
+            - apply bs_Nat.
+          }
+        }
+        { assert(EQ: (Z.of_nat (S n) - Z.of_nat 1)%Z = (Z.of_nat n)%Z).
+          { rewrite <- Nat2Z.inj_sub; simpl.
+            rewrite <- minus_n_O; auto.
+            apply Peano.le_n_S, Nat.le_0_l.
+          } rewrite EQ; clear EQ.
+          assert (EQ: (m * Z.of_nat (S n) * Z.of_nat (fact n))%Z =
+                      (m * Z.of_nat (fact (S n)))%Z).
+          { assert(F: fact (S n) = (S n) * fact n) by auto.
+            rewrite F; rewrite Nat2Z.inj_mul; rewrite Z.mul_assoc; auto.
+          } rewrite <- EQ; clear EQ.
+          apply IHn.
         }
       }
-      { assert(EQ: (Z.of_nat (S n) - Z.of_nat 1)%Z = (Z.of_nat n)%Z).
-        { rewrite <- Nat2Z.inj_sub; simpl.
-          rewrite <- minus_n_O; auto.
-          apply Peano.le_n_S, Nat.le_0_l.
-        } rewrite EQ; clear EQ.
-        assert (EQ: (m * Z.of_nat (S n) * Z.of_nat (fact n))%Z =
-                    (m * Z.of_nat (fact (S n)))%Z).
-        { assert(F: fact (S n) = (S n) * fact n) by auto.
-          rewrite F; rewrite Nat2Z.inj_mul; rewrite Z.mul_assoc; auto.
-        } rewrite <- EQ; clear EQ.
-        apply IHn.
-      }
-    }
-    specialize (Fact 1%Z ([])); rewrite Z.mul_1_l in Fact.
-    destruct Fact as [state_f Fact].
-    exists (state_f[Id 0 <- Z.of_nat (fact n)][Id 1 <- 0%Z]).
-    eapply bs_Seq. apply bs_Assign; constructor.
-    eapply bs_Seq. eapply bs_Read; constructor.
-    eapply bs_Seq. apply Fact.
-    eapply bs_Write.
-    apply bs_Var.
-    apply st_binds_tl; auto.
-    apply st_binds_hd.
-  Qed.    
-  
+      specialize (Fact 1%Z ([])); rewrite Z.mul_1_l in Fact.
+      destruct Fact as [state_f Fact].
+      exists (state_f[Id 0 <- Z.of_nat (fact n)][Id 1 <- 0%Z]).
+      eapply bs_Seq. apply bs_Assign; constructor.
+      eapply bs_Seq. eapply bs_Read; constructor.
+      eapply bs_Seq. apply Fact.
+      eapply bs_Write.
+      apply bs_Var.
+      apply st_binds_tl; auto.
+      apply st_binds_hd.
+    Qed.    
+
+  End Factorial.
+    
 End SmokeTest.
 
 (* Contextual equivalence *)
